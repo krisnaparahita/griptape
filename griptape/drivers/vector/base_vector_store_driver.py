@@ -14,6 +14,8 @@ from griptape.mixins.serializable_mixin import SerializableMixin
 from griptape.utils import with_contextvars
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from griptape.drivers.embedding import BaseEmbeddingDriver
 
 
@@ -108,79 +110,7 @@ class BaseVectorStoreDriver(SerializableMixin, FuturesExecutorMixin, ABC):
         meta: dict | None = None,
         **kwargs,
     ):
-        with self.create_futures_executor() as futures_executor:
-            if isinstance(artifacts, list):
-                return utils.execute_futures_list(
-                    [
-                        futures_executor.submit(with_contextvars(self.upsert), a, namespace=None, meta=meta, **kwargs)
-                        for a in artifacts
-                    ],
-                )
-            futures_dict = {}
-
-            for namespace, artifact_list in artifacts.items():
-                for a in artifact_list:
-                    if not futures_dict.get(namespace):
-                        futures_dict[namespace] = []
-
-                    futures_dict[namespace].append(
-                        futures_executor.submit(
-                            with_contextvars(self.upsert), a, namespace=namespace, meta=meta, **kwargs
-                        )
-                    )
-
-            return utils.execute_futures_list_dict(futures_dict)
-
-    @overload
-    def insert_collection(
-        self,
-        artifacts: list[TextArtifact] | list[ImageArtifact],
-        *,
-        meta: dict | None = None,
-        **kwargs,
-    ) -> list[str]: ...
-
-    @overload
-    def insert_collection(
-        self,
-        artifacts: dict[str, list[TextArtifact]] | dict[str, list[ImageArtifact]],
-        *,
-        meta: dict | None = None,
-        **kwargs,
-    ) -> dict[str, list[str]]: ...
-
-    def insert_collection(
-        self,
-        artifacts: list[TextArtifact]
-        | list[ImageArtifact]
-        | dict[str, list[TextArtifact]]
-        | dict[str, list[ImageArtifact]],
-        *,
-        meta: dict | None = None,
-        **kwargs,
-    ):
-        with self.create_futures_executor() as futures_executor:
-            if isinstance(artifacts, list):
-                return utils.execute_futures_list(
-                    [
-                        futures_executor.submit(with_contextvars(self.insert), a, namespace=None, meta=meta, **kwargs)
-                        for a in artifacts
-                    ],
-                )
-            futures_dict = {}
-
-            for namespace, artifact_list in artifacts.items():
-                for a in artifact_list:
-                    if not futures_dict.get(namespace):
-                        futures_dict[namespace] = []
-
-                    futures_dict[namespace].append(
-                        futures_executor.submit(
-                            with_contextvars(self.insert), a, namespace=namespace, meta=meta, **kwargs
-                        )
-                    )
-
-            return utils.execute_futures_list_dict(futures_dict)
+        return self._execute_collection_operation(artifacts, self.upsert, meta=meta, **kwargs)
 
     def upsert(
         self,
@@ -213,7 +143,92 @@ class BaseVectorStoreDriver(SerializableMixin, FuturesExecutorMixin, ABC):
         meta: dict | None = None,
         **kwargs,
     ) -> str:
+        """Insert a value into the vector store with a randomly generated ID.
+
+        Args:
+            value: The value to insert.
+            namespace: An optional namespace for the value.
+            meta: An optional dictionary of metadata for the value.
+            kwargs: Additional keyword arguments to pass to the vector store driver.
+
+        Returns:
+            str: The generated vector ID.
+        """
         return self.upsert(value, namespace=namespace, meta=meta, vector_id=str(uuid.uuid4()), **kwargs)
+
+    @overload
+    def insert_collection(
+        self,
+        artifacts: list[TextArtifact] | list[ImageArtifact],
+        *,
+        meta: dict | None = None,
+        **kwargs,
+    ) -> list[str]: ...
+
+    @overload
+    def insert_collection(
+        self,
+        artifacts: dict[str, list[TextArtifact]] | dict[str, list[ImageArtifact]],
+        *,
+        meta: dict | None = None,
+        **kwargs,
+    ) -> dict[str, list[str]]: ...
+
+    def insert_collection(
+        self,
+        artifacts: list[TextArtifact]
+        | list[ImageArtifact]
+        | dict[str, list[TextArtifact]]
+        | dict[str, list[ImageArtifact]],
+        *,
+        meta: dict | None = None,
+        **kwargs,
+    ):
+        """Insert a collection of artifacts into the vector store with randomly generated IDs.
+
+        Args:
+            artifacts: The artifacts to insert, optionally grouped by namespace.
+            meta: An optional dictionary of metadata for the artifacts.
+            kwargs: Additional keyword arguments to pass to the vector store driver.
+
+        Returns:
+            list[str] | dict[str, list[str]]: The generated vector IDs.
+        """
+        return self._execute_collection_operation(artifacts, self.insert, meta=meta, **kwargs)
+
+    def _execute_collection_operation(
+        self,
+        artifacts: list[TextArtifact]
+        | list[ImageArtifact]
+        | dict[str, list[TextArtifact]]
+        | dict[str, list[ImageArtifact]],
+        operation: Callable[..., str],
+        *,
+        meta: dict | None = None,
+        **kwargs,
+    ) -> list[str] | dict[str, list[str]]:
+        with self.create_futures_executor() as futures_executor:
+            if isinstance(artifacts, list):
+                return utils.execute_futures_list(
+                    [
+                        futures_executor.submit(with_contextvars(operation), a, namespace=None, meta=meta, **kwargs)
+                        for a in artifacts
+                    ],
+                )
+            futures_dict = {}
+
+            for namespace, artifact_list in artifacts.items():
+                for a in artifact_list:
+                    if not futures_dict.get(namespace):
+                        futures_dict[namespace] = []
+
+                    futures_dict[namespace].append(
+                        futures_executor.submit(
+                            with_contextvars(operation), a, namespace=namespace, meta=meta, **kwargs
+                        )
+                    )
+
+            return utils.execute_futures_list_dict(futures_dict)
 
     def does_entry_exist(self, vector_id: str, *, namespace: str | None = None) -> bool:
         try:
