@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 import warnings
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, Any, overload
 
 from attrs import define, field
 
@@ -141,7 +141,7 @@ class BaseVectorStoreDriver(SerializableMixin, FuturesExecutorMixin, ABC):
         *,
         namespace: str | None = None,
         meta: dict | None = None,
-        **kwargs,
+        **kwargs: Any,
     ) -> str:
         """Insert a value into the vector store with a randomly generated ID.
 
@@ -182,8 +182,8 @@ class BaseVectorStoreDriver(SerializableMixin, FuturesExecutorMixin, ABC):
         | dict[str, list[ImageArtifact]],
         *,
         meta: dict | None = None,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> list[str] | dict[str, list[str]]:
         """Insert a collection of artifacts into the vector store with randomly generated IDs.
 
         Args:
