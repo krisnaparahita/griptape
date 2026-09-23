@@ -7,12 +7,28 @@ search:
 
 Griptape provides a way to build drivers for vector DBs where embeddings can be stored and queried. Every Vector Store Driver implements the following methods:
 
-- `upsert()` for updating or inserting new text, [TextArtifact](../../reference/griptape/artifacts/text_artifact.md)s or [ImageArtifact](../../reference/griptape/artifacts/text_artifact.md)s into vector DBs. The method will automatically generate embeddings for a given value.
+- `upsert()` for updating existing entries or inserting new text, [TextArtifact](../../reference/griptape/artifacts/text_artifact.md)s or [ImageArtifact](../../reference/griptape/artifacts/text_artifact.md)s with an explicit ID into vector DBs. The method will automatically generate embeddings for a given value.
 - `upsert_collection()` for performing an `upsert()` in parallel.
+- `insert()` for inserting new text, [TextArtifact](../../reference/griptape/artifacts/text_artifact.md)s or [ImageArtifact](../../reference/griptape/artifacts/text_artifact.md)s into vector DBs with an automatically generated ID. The method will automatically generate embeddings for a given value.
+- `insert_collection()` for performing an `insert()` in parallel.
 - `upsert_vector()` for updating new vectors directly.
 - `query()` for querying vector DBs.
 
 Each Vector Store Driver takes a [BaseEmbeddingDriver](../../reference/griptape/drivers/embedding/base_embedding_driver.md) used to dynamically generate embeddings for strings.
+
+Here is an example of inserting a single value and a collection of Artifacts into a Vector Store Driver:
+
+=== "Code"
+
+    ```python
+    --8<-- "docs/griptape-framework/drivers/src/vector_store_drivers_13.py"
+    ```
+
+=== "Logs"
+
+    ```text
+    --8<-- "docs/griptape-framework/drivers/logs/vector_store_drivers_13.txt"
+    ```
 
 !!! info
 
