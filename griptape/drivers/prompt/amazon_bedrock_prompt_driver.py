@@ -157,12 +157,15 @@ class AmazonBedrockPromptDriver(BasePromptDriver):
         return params
 
     def __to_bedrock_messages(self, messages: list[Message]) -> list[dict]:
+        # A reply that held only redacted reasoning (e.g. one cut off by `maxTokens`) has no content, and
+        # Bedrock rejects a message with empty content, so skip it rather than fail every later request.
         return [
             {
                 "role": self.__to_bedrock_role(message),
                 "content": [self.__to_bedrock_message_content(content) for content in message.content],
             }
             for message in messages
+            if message.content
         ]
 
     def __to_bedrock_role(self, message: Message) -> str:
