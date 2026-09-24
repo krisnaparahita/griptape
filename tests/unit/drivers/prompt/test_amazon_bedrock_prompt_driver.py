@@ -678,6 +678,27 @@ class TestAmazonBedrockPromptDriver:
         assert all(block["text"] for block in content_blocks)
         assert [block["text"] for block in content_blocks] == ["test", "model-output", "follow up"]
 
+    def test_try_run_redacted_reasoning_only_round_trip(self, mocker):
+        """A reply holding only redacted reasoning must not put an empty message in a follow-up request."""
+        mock_converse = mocker.patch("boto3.Session").return_value.client.return_value.converse
+        mock_converse.return_value = {
+            "output": {"message": {"content": [{"reasoningContent": {"redactedContent": b"encrypted"}}]}},
+            "stopReason": "max_tokens",
+            "usage": {"inputTokens": 5, "outputTokens": 10},
+        }
+
+        driver = AmazonBedrockPromptDriver(model="ai21.j2")
+        prompt_stack = PromptStack()
+        prompt_stack.add_user_message("test")
+
+        prompt_stack.messages.append(driver.try_run(prompt_stack))
+        prompt_stack.add_user_message("follow up")
+
+        messages = driver._base_params(prompt_stack)["messages"]
+
+        # Bedrock rejects a message with empty content with a ValidationException.
+        assert [message["content"] for message in messages] == [[{"text": "test"}], [{"text": "follow up"}]]
+
     def test_try_stream_unsupported_reasoning_content_type(self, mocker):
         mock_converse_stream = mocker.patch("boto3.Session").return_value.client.return_value.converse_stream
         mock_converse_stream.return_value = {
