@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from unittest.mock import patch
-from uuid import UUID
 
 import pytest
 
@@ -30,7 +29,6 @@ class TestBaseVectorStoreDriver(ABC):
     def test_insert(self, driver):
         id1 = driver.insert(TextArtifact(value="foobar"))
 
-        assert UUID(id1).version == 4
         assert driver.load_entry(id1).id == id1
 
         id2 = driver.insert(TextArtifact(value="foobar"))

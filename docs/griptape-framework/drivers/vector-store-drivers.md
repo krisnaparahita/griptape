@@ -7,7 +7,7 @@ search:
 
 Griptape provides a way to build drivers for vector DBs where embeddings can be stored and queried. Every Vector Store Driver implements the following methods:
 
-- `upsert()` for inserting or updating text, [TextArtifact](../../reference/griptape/artifacts/text_artifact.md)s or [ImageArtifact](../../reference/griptape/artifacts/image_artifact.md)s in vector DBs by ID. If `vector_id` omitted, the method derives a deterministic ID from content. The method will automatically generate embeddings for a given value.
+- `upsert()` for inserting or updating text, [TextArtifact](../../reference/griptape/artifacts/text_artifact.md)s or [ImageArtifact](../../reference/griptape/artifacts/image_artifact.md)s in vector DBs by ID. If `vector_id` is omitted, the method derives a deterministic ID from content. The method will automatically generate embeddings for a given value.
 - `upsert_collection()` for performing an `upsert()` in parallel.
 - `insert()` for inserting new text, [TextArtifact](../../reference/griptape/artifacts/text_artifact.md)s or [ImageArtifact](../../reference/griptape/artifacts/image_artifact.md)s into vector DBs with an automatically generated ID. The method will automatically generate embeddings for a given value.
 - `insert_collection()` for performing an `insert()` in parallel.
